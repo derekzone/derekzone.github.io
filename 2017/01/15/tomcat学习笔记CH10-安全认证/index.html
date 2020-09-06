@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.1.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.14.0/css/all.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/animate.css@3.1.1/animate.min.css">
+
+<script class="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"derekzone.github.io","root":"/","scheme":"Gemini","version":"8.0.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"}};
+  </script>
+
+  <meta name="description" content="配置信息的加载&amp;emsp;&amp;emsp;从《how tomcat works》(深入剖析tomcat)第10章的例程Bootstrap1可以看到，有关安全认证的配置是作为listener载入到context中的: 12LifecycleListener listener &#x3D; new SimpleContextConfig();((Lifecycle) context).addLifecycleLis">
+<meta property="og:type" content="article">
+<meta property="og:title" content="tomcat学习笔记CH10_安全认证">
+<meta property="og:url" content="http://derekzone.github.io/2017/01/15/tomcat%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0CH10-%E5%AE%89%E5%85%A8%E8%AE%A4%E8%AF%81/index.html">
+<meta property="og:site_name" content="Derek.Zone">
+<meta property="og:description" content="配置信息的加载&amp;emsp;&amp;emsp;从《how tomcat works》(深入剖析tomcat)第10章的例程Bootstrap1可以看到，有关安全认证的配置是作为listener载入到context中的: 12LifecycleListener listener &#x3D; new SimpleContextConfig();((Lifecycle) context).addLifecycleLis">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2017-01-15T06:39:45.000Z">
+<meta property="article:modified_time" content="2017-01-15T08:30:52.000Z">
+<meta property="article:author" content="Derek">
+<meta property="article:tag" content="tomcat">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://derekzone.github.io/2017/01/15/tomcat%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0CH10-%E5%AE%89%E5%85%A8%E8%AE%A4%E8%AF%81/">
+
+
+<script class="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>tomcat学习笔记CH10_安全认证 | Derek.Zone</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  body { margin-top: 2rem; }
+
+  .use-motion .menu-item,
+  .use-motion .sidebar,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header {
+    visibility: visible;
+  }
+
+  .use-motion .header,
+  .use-motion .site-brand-container .toggle,
+  .use-motion .footer { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle,
+  .use-motion .custom-logo-image {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line {
+    transform: scaleX(1);
+  }
+
+  .search-pop-overlay, .sidebar-nav { display: none; }
+  .sidebar-panel { display: block; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">Derek.Zone</h1>
+      <i class="logo-line"></i>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+        
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <section class="post-toc-wrap sidebar-panel">
+          <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%85%8D%E7%BD%AE%E4%BF%A1%E6%81%AF%E7%9A%84%E5%8A%A0%E8%BD%BD"><span class="nav-number">1.</span> <span class="nav-text">配置信息的加载</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%89%E5%85%A8%E9%AA%8C%E8%AF%81%E9%85%8D%E7%BD%AE"><span class="nav-number">2.</span> <span class="nav-text">安全验证配置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%AA%8C%E8%AF%81%E8%BF%87%E7%A8%8B"><span class="nav-number">3.</span> <span class="nav-text">验证过程</span></a></li></ol></div>
+      </section>
+      <!--/noindex-->
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Derek</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">7</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </section>
+    </div>
+  </aside>
+  <div class="sidebar-dimmer"></div>
+
+
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+    <div class="main-inner post posts-expand">
+      
+
+      
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://derekzone.github.io/2017/01/15/tomcat%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0CH10-%E5%AE%89%E5%85%A8%E8%AE%A4%E8%AF%81/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Derek">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Derek.Zone">
+    </span>
+
+    
+    
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          tomcat学习笔记CH10_安全认证
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+      
+
+      <time title="创建时间：2017-01-15 14:39:45 / 修改时间：16:30:52" itemprop="dateCreated datePublished" datetime="2017-01-15T14:39:45+08:00">2017-01-15</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <h2 id="配置信息的加载"><a href="#配置信息的加载" class="headerlink" title="配置信息的加载"></a>配置信息的加载</h2><p>&emsp;&emsp;从《how tomcat works》(深入剖析tomcat)第10章的例程Bootstrap1可以看到，有关安全认证的配置是作为listener载入到context中的:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">LifecycleListener listener = <span class="keyword">new</span> SimpleContextConfig();</span><br><span class="line">((Lifecycle) context).addLifecycleListener(listener);</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;查看SimpleContextConfig的代码，可以看到其监听了START_EVENT事件：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">lifecycleEvent</span><span class="params">(LifecycleEvent event)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (Lifecycle.START_EVENT.equals(event.getType())) &#123;</span><br><span class="line">      context = (Context) event.getLifecycle();</span><br><span class="line">      authenticatorConfig();</span><br><span class="line">      context.setConfigured(<span class="keyword">true</span>);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;当context启动时，会通知注册的监听器相关事件的发生：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lifecycle.fireLifecycleEvent(START_EVENT, <span class="keyword">null</span>);</span><br></pre></td></tr></table></figure>
+
+<h2 id="安全验证配置"><a href="#安全验证配置" class="headerlink" title="安全验证配置"></a>安全验证配置</h2><p>&emsp;&emsp;SimpleContextConfig的lifecycleEvent方法就会被调用，在之中主要的操作是调用了authenticatorConfig()方法，再来查看authenticatorConfig()的代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">authenticatorConfig</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="comment">// Does this Context require an Authenticator?</span></span><br><span class="line">  SecurityConstraint constraints[] = context.findConstraints();</span><br><span class="line">  <span class="keyword">if</span> ((constraints == <span class="keyword">null</span>) || (constraints.length == <span class="number">0</span>))</span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line">  LoginConfig loginConfig = context.getLoginConfig();</span><br><span class="line">  <span class="keyword">if</span> (loginConfig == <span class="keyword">null</span>) &#123;</span><br><span class="line">    loginConfig = <span class="keyword">new</span> LoginConfig(<span class="string">&quot;NONE&quot;</span>, <span class="keyword">null</span>, <span class="keyword">null</span>, <span class="keyword">null</span>);</span><br><span class="line">    context.setLoginConfig(loginConfig);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// Has an authenticator been configured already?</span></span><br><span class="line">  Pipeline pipeline = ((StandardContext) context).getPipeline();</span><br><span class="line">  <span class="keyword">if</span> (pipeline != <span class="keyword">null</span>) &#123;</span><br><span class="line">    Valve basic = pipeline.getBasic();</span><br><span class="line">    <span class="keyword">if</span> ((basic != <span class="keyword">null</span>) &amp;&amp; (basic <span class="keyword">instanceof</span> Authenticator))</span><br><span class="line">      <span class="keyword">return</span>;</span><br><span class="line">    Valve valves[] = pipeline.getValves();</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; valves.length; i++) &#123;</span><br><span class="line">      <span class="keyword">if</span> (valves[i] <span class="keyword">instanceof</span> Authenticator)</span><br><span class="line">      <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">else</span> &#123; <span class="comment">// no Pipeline, cannot install authenticator valve</span></span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// Has a Realm been configured for us to authenticate against?</span></span><br><span class="line">  <span class="keyword">if</span> (context.getRealm() == <span class="keyword">null</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// Identify the class name of the Valve we should configure</span></span><br><span class="line">  String authenticatorName = <span class="string">&quot;org.apache.catalina.authenticator.BasicAuthenticator&quot;</span>;</span><br><span class="line">  <span class="comment">// Instantiate and install an Authenticator of the requested class</span></span><br><span class="line">  Valve authenticator = <span class="keyword">null</span>;</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    Class authenticatorClass = Class.forName(authenticatorName);</span><br><span class="line">    authenticator = (Valve) authenticatorClass.newInstance();</span><br><span class="line">    ((StandardContext) context).addValve(authenticator);</span><br><span class="line">    System.out.println(<span class="string">&quot;Added authenticator valve to Context&quot;</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">catch</span> (Throwable t) &#123;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  &emsp;&emsp;可以看到其主要操作是在context的管道中添加BasicAuthenticator阀,当请求到来时，context会从管道从逐级调用各个阀，入口是invoke方法，因此去看下BasicAuthenticator的invoke方法，查看BasicAuthenticator代码会发现其没有重写父类的invoke方法，因此去查看BasicAuthenticator父类AuthenticatorBase的invoke方法：</p>
+<h2 id="验证过程"><a href="#验证过程" class="headerlink" title="验证过程"></a>验证过程</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">invoke</span><span class="params">(Request request, Response response,</span></span></span><br><span class="line"><span class="function"><span class="params">                   ValveContext context)</span></span></span><br><span class="line"><span class="function">    <span class="keyword">throws</span> IOException, ServletException </span>&#123;</span><br><span class="line">    <span class="comment">// If this is not an HTTP request, do nothing</span></span><br><span class="line">    <span class="keyword">if</span> (!(request <span class="keyword">instanceof</span> HttpRequest) ||</span><br><span class="line">        !(response <span class="keyword">instanceof</span> HttpResponse)) &#123;</span><br><span class="line">        context.invokeNext(request, response);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (!(request.getRequest() <span class="keyword">instanceof</span> HttpServletRequest) ||</span><br><span class="line">        !(response.getResponse() <span class="keyword">instanceof</span> HttpServletResponse)) &#123;</span><br><span class="line">        context.invokeNext(request, response);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    HttpRequest hrequest = (HttpRequest) request;</span><br><span class="line">    HttpResponse hresponse = (HttpResponse) response;</span><br><span class="line">    <span class="keyword">if</span> (debug &gt;= <span class="number">1</span>)</span><br><span class="line">        log(<span class="string">&quot;Security checking request &quot;</span> +</span><br><span class="line">            ((HttpServletRequest) request.getRequest()).getMethod() + <span class="string">&quot; &quot;</span> +</span><br><span class="line">            ((HttpServletRequest) request.getRequest()).getRequestURI());</span><br><span class="line">    LoginConfig config = <span class="keyword">this</span>.context.getLoginConfig();</span><br><span class="line">    <span class="comment">// Have we got a cached authenticated Principal to record?</span></span><br><span class="line">    <span class="keyword">if</span> (cache) &#123;</span><br><span class="line">        Principal principal =</span><br><span class="line">            ((HttpServletRequest) request.getRequest()).getUserPrincipal();</span><br><span class="line">        <span class="keyword">if</span> (principal == <span class="keyword">null</span>) &#123;</span><br><span class="line">            Session session = getSession(hrequest);</span><br><span class="line">            <span class="keyword">if</span> (session != <span class="keyword">null</span>) &#123;</span><br><span class="line">                principal = session.getPrincipal();</span><br><span class="line">                <span class="keyword">if</span> (principal != <span class="keyword">null</span>) &#123;</span><br><span class="line">                    <span class="keyword">if</span> (debug &gt;= <span class="number">1</span>)</span><br><span class="line">                        log(<span class="string">&quot;We have cached auth type &quot;</span> +</span><br><span class="line">                            session.getAuthType() +</span><br><span class="line">                            <span class="string">&quot; for principal &quot;</span> +</span><br><span class="line">                            session.getPrincipal());</span><br><span class="line">                    hrequest.setAuthType(session.getAuthType());</span><br><span class="line">                    hrequest.setUserPrincipal(principal);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// Special handling for form-based logins to deal with the case</span></span><br><span class="line">    <span class="comment">// where the login form (and therefore the &quot;j_security_check&quot; URI</span></span><br><span class="line">    <span class="comment">// to which it submits) might be outside the secured area</span></span><br><span class="line">    String contextPath = <span class="keyword">this</span>.context.getPath();</span><br><span class="line">    String requestURI = hrequest.getDecodedRequestURI();</span><br><span class="line">    <span class="keyword">if</span> (requestURI.startsWith(contextPath) &amp;&amp;</span><br><span class="line">        requestURI.endsWith(Constants.FORM_ACTION)) &#123;</span><br><span class="line">        <span class="keyword">if</span> (!authenticate(hrequest, hresponse, config)) &#123;</span><br><span class="line">            <span class="keyword">if</span> (debug &gt;= <span class="number">1</span>)</span><br><span class="line">                log(<span class="string">&quot; Failed authenticate() test&quot;</span>);</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// Is this request URI subject to a security constraint?</span></span><br><span class="line">    SecurityConstraint constraint = findConstraint(hrequest);</span><br><span class="line">    <span class="keyword">if</span> ((constraint == <span class="keyword">null</span>) <span class="comment">/* &amp;&amp;</span></span><br><span class="line"><span class="comment">        (!Constants.FORM_METHOD.equals(config.getAuthMethod())) */</span> ) &#123;</span><br><span class="line">        <span class="keyword">if</span> (debug &gt;= <span class="number">1</span>)</span><br><span class="line">            log(<span class="string">&quot; Not subject to any constraint&quot;</span>);</span><br><span class="line">        context.invokeNext(request, response);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> ((debug &gt;= <span class="number">1</span>) &amp;&amp; (constraint != <span class="keyword">null</span>))</span><br><span class="line">        log(<span class="string">&quot; Subject to constraint &quot;</span> + constraint);</span><br><span class="line">    <span class="comment">// Make sure that constrained resources are not cached by web proxies</span></span><br><span class="line">    <span class="comment">// or browsers as caching can provide a security hole</span></span><br><span class="line">    <span class="keyword">if</span> (!(((HttpServletRequest) hrequest.getRequest()).isSecure())) &#123;</span><br><span class="line">        HttpServletResponse sresponse = </span><br><span class="line">            (HttpServletResponse) response.getResponse();</span><br><span class="line">        sresponse.setHeader(<span class="string">&quot;Pragma&quot;</span>, <span class="string">&quot;No-cache&quot;</span>);</span><br><span class="line">        sresponse.setHeader(<span class="string">&quot;Cache-Control&quot;</span>, <span class="string">&quot;no-cache&quot;</span>);</span><br><span class="line">        sresponse.setDateHeader(<span class="string">&quot;Expires&quot;</span>, <span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// Enforce any user data constraint for this security constraint</span></span><br><span class="line">    <span class="keyword">if</span> (debug &gt;= <span class="number">1</span>)</span><br><span class="line">        log(<span class="string">&quot; Calling checkUserData()&quot;</span>);</span><br><span class="line">    <span class="keyword">if</span> (!checkUserData(hrequest, hresponse, constraint)) &#123;</span><br><span class="line">        <span class="keyword">if</span> (debug &gt;= <span class="number">1</span>)</span><br><span class="line">            log(<span class="string">&quot; Failed checkUserData() test&quot;</span>);</span><br><span class="line">        <span class="comment">// ASSERT: Authenticator already set the appropriate</span></span><br><span class="line">        <span class="comment">// HTTP status code, so we do not have to do anything special</span></span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// Authenticate based upon the specified login configuration</span></span><br><span class="line">    <span class="keyword">if</span> (constraint.getAuthConstraint()) &#123;</span><br><span class="line">        <span class="keyword">if</span> (debug &gt;= <span class="number">1</span>)</span><br><span class="line">            log(<span class="string">&quot; Calling authenticate()&quot;</span>);</span><br><span class="line">        <span class="keyword">if</span> (!authenticate(hrequest, hresponse, config)) &#123;</span><br><span class="line">            <span class="keyword">if</span> (debug &gt;= <span class="number">1</span>)</span><br><span class="line">                log(<span class="string">&quot; Failed authenticate() test&quot;</span>);</span><br><span class="line">            <span class="comment">// ASSERT: Authenticator already set the appropriate</span></span><br><span class="line">            <span class="comment">// HTTP status code, so we do not have to do anything special</span></span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// Perform access control based on the specified role(s)</span></span><br><span class="line">    <span class="keyword">if</span> (constraint.getAuthConstraint()) &#123;</span><br><span class="line">        <span class="keyword">if</span> (debug &gt;= <span class="number">1</span>)</span><br><span class="line">            log(<span class="string">&quot; Calling accessControl()&quot;</span>);</span><br><span class="line">        <span class="keyword">if</span> (!accessControl(hrequest, hresponse, constraint)) &#123;</span><br><span class="line">            <span class="keyword">if</span> (debug &gt;= <span class="number">1</span>)</span><br><span class="line">                log(<span class="string">&quot; Failed accessControl() test&quot;</span>);</span><br><span class="line">            <span class="comment">// ASSERT: AccessControl method has already set the appropriate</span></span><br><span class="line">            <span class="comment">// HTTP status code, so we do not have to do anything special</span></span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// Any and all specified constraints have been satisfied</span></span><br><span class="line">    <span class="keyword">if</span> (debug &gt;= <span class="number">1</span>)</span><br><span class="line">        log(<span class="string">&quot; Successfully passed all security constraints&quot;</span>);</span><br><span class="line">    context.invokeNext(request, response);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;代码略长，一开始过滤掉了非http请求的情况。如果开启cache的话会首先从session中查找是否已有验证。从context中获取LoginConfig，然后调用了authenticate(hrequest,hresponse, config)方法；然后会查找是否有constraint，没有的话就调用下一个管道，返回。有的话针对constraint做进一步的认证，包括access control,是根据constraint中的用户角色决定是否有权访问。<br>&emsp;&emsp;上述提到的authenticate(hrequest,hresponse, config)方法在AuthenticatorBase是一个抽象方法，其实现在子类BasicAuthenticator中:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">authenticate</span><span class="params">(HttpRequest request,</span></span></span><br><span class="line"><span class="function"><span class="params">                                HttpResponse response,</span></span></span><br><span class="line"><span class="function"><span class="params">                                LoginConfig config)</span></span></span><br><span class="line"><span class="function">        <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        <span class="comment">// Have we already authenticated someone?</span></span><br><span class="line">        Principal principal =</span><br><span class="line">            ((HttpServletRequest) request.getRequest()).getUserPrincipal();</span><br><span class="line">        <span class="keyword">if</span> (principal != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (debug &gt;= <span class="number">1</span>)</span><br><span class="line">                log(<span class="string">&quot;Already authenticated &#x27;&quot;</span> + principal.getName() + <span class="string">&quot;&#x27;&quot;</span>);</span><br><span class="line">            <span class="keyword">return</span> (<span class="keyword">true</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// Validate any credentials already included with this request</span></span><br><span class="line">        HttpServletRequest hreq =</span><br><span class="line">            (HttpServletRequest) request.getRequest();</span><br><span class="line">        HttpServletResponse hres =</span><br><span class="line">            (HttpServletResponse) response.getResponse();</span><br><span class="line">        String authorization = request.getAuthorization();</span><br><span class="line">        String username = parseUsername(authorization);</span><br><span class="line">        String password = parsePassword(authorization);</span><br><span class="line">        principal = context.getRealm().authenticate(username, password);</span><br><span class="line">        <span class="keyword">if</span> (principal != <span class="keyword">null</span>) &#123;</span><br><span class="line">            register(request, response, principal, Constants.BASIC_METHOD,</span><br><span class="line">                     username, password);</span><br><span class="line">            <span class="keyword">return</span> (<span class="keyword">true</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// Send an &quot;unauthorized&quot; response and an appropriate challenge</span></span><br><span class="line">        String realmName = config.getRealmName();</span><br><span class="line">        <span class="keyword">if</span> (realmName == <span class="keyword">null</span>)</span><br><span class="line">            realmName = hreq.getServerName() + <span class="string">&quot;:&quot;</span> + hreq.getServerPort();</span><br><span class="line">    <span class="comment">//        if (debug &gt;= 1)</span></span><br><span class="line">    <span class="comment">//            log(&quot;Challenging for realm &#x27;&quot; + realmName + &quot;&#x27;&quot;);</span></span><br><span class="line">        hres.setHeader(<span class="string">&quot;WWW-Authenticate&quot;</span>,</span><br><span class="line">                       <span class="string">&quot;Basic realm=\&quot;&quot;</span> + realmName + <span class="string">&quot;\&quot;&quot;</span>);</span><br><span class="line">        hres.setStatus(HttpServletResponse.SC_UNAUTHORIZED);</span><br><span class="line">        <span class="comment">//      hres.flushBuffer();</span></span><br><span class="line">        <span class="keyword">return</span> (<span class="keyword">false</span>);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>&emsp;&emsp;可以看到，验证成功则交给下一级阀处理，失败则返回UNAUTHORIZED（即HTTP 401状态码），浏览器在第一次接受到401状态码时会自动弹出验证窗口，用户填完验证信息并点击登录，浏览器会见携带验证信息再发送一次请求，如果再次接受到401状态码，则会显示验证失败。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/tomcat/" rel="tag"># tomcat</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2016/12/22/tomcat%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0CH6/" rel="prev" title="tomcat学习笔记CH6">
+                  <i class="fa fa-chevron-left"></i> tomcat学习笔记CH6
+                </a>
+            </div>
+            <div class="post-nav-item">
+            </div>
+          </div>
+    </footer>
+  </article>
+  
+  
+  
+
+
+
+      
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      const activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      const commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      
+
+      
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Derek</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <script src="//cdn.jsdelivr.net/npm/animejs@3.2.0/lib/anime.min.js"></script>
+<script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1.6.2/dist/gitalk.css">
+
+<script>
+NexT.utils.loadComments('#gitalk-container', () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1.6.2/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : '66aa1f6efd1790689f77',
+      clientSecret: '664e383ee4bded15f3838d7689d841f96b8a75derekzone',
+      repo        : 'derekzone.github.io',
+      owner       : 'derekzone',
+      admin       : [''],
+      id          : '958369327302d91f715d8ea02dc4960e',
+        language: '',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+</body>
+</html>
